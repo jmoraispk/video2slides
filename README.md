@@ -1,38 +1,59 @@
 # video2slides
 
-Turn a recorded talk or presentation video into a deduplicated set of slide images plus a single PDF.
+Extract the slides from a presentation video as PNGs plus one PDF.
 
-The approach is deliberately simple: grab one frame every N seconds, and keep it only if it differs enough from the last slide kept.
+```
+uv run extract_slides.py talk.mp4
+```
+
+[This 9-min talk](https://x.com/victorgu0/status/2117693795076854052) became 14 slides in about 7 s.
 
 ## Usage
 
-Requires [uv](https://docs.astral.sh/uv/). The dependencies (`opencv-python`, `numpy`, `img2pdf`) are declared inline in the script ([PEP 723](https://peps.python.org/pep-0723/)), so `uv run` installs them on the fly. No virtualenv or `pip install` needed.
-
 ```
-uv run extract_slides.py VIDEO [--interval 10] [--threshold 95] [--output-dir DIR]
+uv run extract_slides.py VIDEO [-i 10] [-t 95] [-o DIR]
 ```
 
 | Option | Default | Meaning |
 |---|---|---|
-| `-i`, `--interval` | `10` | Seconds between frame grabs. Longer is faster, but slides shown for less than this can be missed. |
-| `-t`, `--threshold` | `95` | A frame is a duplicate if at least this % of its pixels equal the last kept slide. Raise it (98–99) if incremental bullet reveals get dropped; lower it if near-duplicates get through. |
-| `-o`, `--output-dir` | `<video name>_slides` | Folder for the PNGs. The PDF is written as `<output-dir>.pdf`. |
+| `-i`, `--interval` | `10` | Seconds between frame grabs. Higher is faster but can miss short slides. |
+| `-t`, `--threshold` | `95` | % of pixels that must match the last slide to count as a duplicate. |
+| `-o`, `--output-dir` | `<video>_slides` | Folder for the PNGs. |
 
 Output:
 
-- `<video name>_slides/slide_001_00-00-00.png`, `slide_002_00-00-10.png`, ... (the time in each name is the timestamp in the video)
-- `<video name>_slides.pdf`: all slides joined in order, at full quality
+```
+<video>_slides/slide_001_00-00-00.png   # time in the video
+<video>_slides/slide_002_00-00-10.png
+...
+<video>_slides.pdf                      # all slides, in order
+```
 
-### How deduplication works
+<details>
+<summary>Dependencies</summary>
 
-Each grabbed frame is downscaled to 320 px wide and converted to grayscale. A pixel counts as "equal" if its grayscale value is within 12 (out of 255) of the same pixel in the last kept slide, so video compression noise doesn't create false new slides. If the share of equal pixels is below `--threshold`, the frame is saved as a new slide.
+Only [uv](https://docs.astral.sh/uv/) is needed. The script declares its dependencies inline (`opencv-python`, `numpy`, `img2pdf`, [PEP 723](https://peps.python.org/pep-0723/)), and `uv run` installs them on the first run.
 
-## Example
+</details>
 
-Tested on [this talk by Victor Gu on X](https://x.com/victorgu0/status/2117693795076854052), downloaded with the [X Video Downloader](https://chromewebstore.google.com/detail/x-video-downloader/lpkhciegcecmbnojmdhfkcooedminenc) Chrome extension: an 8 min 53 s, 1920×1080, 30 fps MP4 of a talk with slides and a webcam overlay.
+<details>
+<summary>How deduplication works</summary>
+
+The script grabs a frame every `--interval` seconds. It compares each frame to the last kept slide on a 320 px grayscale copy. Pixels within 12/255 of each other count as equal, which ignores compression noise. A frame is kept when fewer than `--threshold` % of its pixels are equal.
+
+Raise `-t` to 98–99 if slides that only add a bullet get dropped. Lower it if near-duplicates get through.
+
+</details>
+
+<details>
+<summary>Example details</summary>
+
+The video was downloaded with the [X Video Downloader](https://chromewebstore.google.com/detail/x-video-downloader/lpkhciegcecmbnojmdhfkcooedminenc) Chrome extension. It is an 8 min 53 s, 1080p, 30 fps MP4 with a webcam overlay.
 
 ```
 uv run extract_slides.py 2026-11-04-09-33-29.mp4
 ```
 
-Result: 14 frames kept (an intro frame before the slides start, plus 13 distinct slides) and a 14-page PDF. The run took **about 7 seconds** on a Windows laptop once the dependencies were cached. The first run also downloads OpenCV and NumPy (~55 MB).
+The run kept 14 frames (an intro frame plus 13 slides) and wrote a 14-page PDF. It took ~7 s on a Windows laptop with dependencies already cached.
+
+</details>
