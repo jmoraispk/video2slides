@@ -10,10 +10,12 @@ downscaled grayscale copy, and count as equal when their difference is small,
 so video compression noise does not create false new slides.
 
 Usage:
-  uv run extract_slides.py VIDEO [--interval 10] [--threshold 95] [--output-dir DIR]
+  uv run extract_slides.py VIDEO [--interval 10] [--threshold 95] [--quality 80]
+                            [--output-dir DIR]
 
 Output: DIR/slide_001_00-01-20.png, ... (default DIR: <video name>_slides next
 to the video), plus all slides joined into DIR.pdf (e.g. <video name>_slides.pdf).
+PDF pages are JPEG-compressed at --quality; PNGs on disk stay lossless.
 """
 
 import argparse
@@ -55,8 +57,15 @@ def main() -> None:
         help="frames with at least this %% of equal pixels are duplicates "
         "(default: %(default)s)",
     )
+    parser.add_argument(
+        "-q", "--quality", type=int, default=80,
+        help="JPEG quality of PDF pages, 1-100; 0 = lossless PNG pages "
+        "(default: %(default)s)",
+    )
     parser.add_argument("-o", "--output-dir", type=Path, default=None)
     args = parser.parse_args()
+    if not 0 <= args.quality <= 100:
+        parser.error("--quality must be between 0 and 100")
 
     out_dir = args.output_dir or args.video.with_name(f"{args.video.stem}_slides")
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -91,7 +100,13 @@ def main() -> None:
 
     if slide_paths:
         pdf_path = out_dir.with_suffix(".pdf")
-        pdf_path.write_bytes(img2pdf.convert([str(p) for p in slide_paths]))
+        if args.quality == 0:
+            pages = [str(p) for p in slide_paths]
+        else:
+            params = [cv2.IMWRITE_JPEG_QUALITY, args.quality]
+            pages = [cv2.imencode(".jpg", cv2.imread(str(p)), params)[1].tobytes()
+                     for p in slide_paths]
+        pdf_path.write_bytes(img2pdf.convert(pages))
         print(f"PDF saved to {pdf_path}")
 
 

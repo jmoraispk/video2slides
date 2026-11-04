@@ -11,13 +11,14 @@ uv run extract_slides.py talk.mp4
 ## Usage
 
 ```
-uv run extract_slides.py VIDEO [-i 10] [-t 95] [-o DIR]
+uv run extract_slides.py VIDEO [-i 10] [-t 95] [-q 80] [-o DIR]
 ```
 
 | Option | Default | Meaning |
 |---|---|---|
 | `-i`, `--interval` | `10` | Seconds between frame grabs. Higher is faster but can miss short slides. |
-| `-t`, `--threshold` | `95` | % of pixels that must match the last slide to count as a duplicate. |
+| `-t`, `--threshold` | `95` | % of pixels that must match to count as a duplicate. |
+| `-q`, `--quality` | `80` | JPEG quality of PDF pages (1–100). `0` = lossless. PNGs stay lossless. |
 | `-o`, `--output-dir` | `<video>_slides` | Folder for the PNGs. |
 
 Output:
@@ -26,7 +27,7 @@ Output:
 <video>_slides/slide_001_00-00-00.png   # time in the video
 <video>_slides/slide_002_00-00-10.png
 ...
-<video>_slides.pdf                      # all slides, in order
+<video>_slides.pdf                      # all slides, in order (~2 MB vs 11 MB lossless)
 ```
 
 <details>
