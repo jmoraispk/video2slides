@@ -1,9 +1,11 @@
 # video2slides
 
-Extract the slides from a presentation video as PNGs plus one PDF.
+Extract the slides from a presentation video as one PDF.
+
+Run without cloning:
 
 ```
-uv run extract_slides.py talk.mp4
+uv run https://github.com/jmoraispk/video2slides/raw/main/extract_slides.py talk.mp4
 ```
 
 [This 9-min talk](https://x.com/victorgu0/status/2117693795076854052) became 14 slides in about 7 s.
@@ -11,7 +13,7 @@ uv run extract_slides.py talk.mp4
 ## Usage
 
 ```
-uv run extract_slides.py VIDEO [-i 10] [-t 95] [-q 80] [-o DIR]
+uv run extract_slides.py VIDEO [-i 10] [-t 95] [-q 80] [--png]
 ```
 
 | Option | Default | Meaning |
@@ -19,13 +21,13 @@ uv run extract_slides.py VIDEO [-i 10] [-t 95] [-q 80] [-o DIR]
 | `-i`, `--interval` | `10` | Seconds between frame grabs. Higher is faster but can miss short slides. |
 | `-t`, `--threshold` | `95` | % of pixels that must match to count as a duplicate. |
 | `-q`, `--quality` | `80` | JPEG quality of PDF pages (1–100). `0` = lossless. PNGs stay lossless. |
-| `-o`, `--output-dir` | `<video>_slides` | Folder for the PNGs. |
+| `--png` | off | Also save each slide as a lossless PNG. |
 
-Output:
+Output, next to the video:
 
 ```
 <video>_slides.pdf                      # all slides, in order (~2 MB vs 11 MB lossless)
-<video>_slides/slide_001_00-00-00.png   # time in the video
+<video>_slides/slide_001_00-00-00.png   # with --png; time in the video
 <video>_slides/slide_002_00-00-10.png
 ...
 ```

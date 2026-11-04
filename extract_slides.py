@@ -10,12 +10,11 @@ downscaled grayscale copy, and count as equal when their difference is small,
 so video compression noise does not create false new slides.
 
 Usage:
-  uv run extract_slides.py VIDEO [--interval 10] [--threshold 95] [--quality 80]
-                            [--output-dir DIR]
+  uv run extract_slides.py VIDEO [--interval 10] [--threshold 95] [--quality 80] [--png]
 
-Output: DIR/slide_001_00-01-20.png, ... (default DIR: <video name>_slides next
-to the video), plus all slides joined into DIR.pdf (e.g. <video name>_slides.pdf).
-PDF pages are JPEG-compressed at --quality; PNGs on disk stay lossless.
+Output, next to the video:
+  <video>_slides.pdf   all slides in order, JPEG-compressed at --quality
+  <video>_slides/      lossless PNGs, slide_001_00-01-20.png, ... (only with --png)
 """
 
 import argparse
@@ -62,13 +61,13 @@ def main() -> None:
         help="JPEG quality of PDF pages, 1-100; 0 = lossless PNG pages "
         "(default: %(default)s)",
     )
-    parser.add_argument("-o", "--output-dir", type=Path, default=None)
+    parser.add_argument(
+        "--png", action="store_true",
+        help="also save each slide as a lossless PNG in <video>_slides/",
+    )
     args = parser.parse_args()
     if not 0 <= args.quality <= 100:
         parser.error("--quality must be between 0 and 100")
-
-    out_dir = args.output_dir or args.video.with_name(f"{args.video.stem}_slides")
-    out_dir.mkdir(parents=True, exist_ok=True)
 
     cap = cv2.VideoCapture(str(args.video))
     if not cap.isOpened():
@@ -76,9 +75,15 @@ def main() -> None:
     fps = cap.get(cv2.CAP_PROP_FPS)
     duration = cap.get(cv2.CAP_PROP_FRAME_COUNT) / fps
 
+    png_dir = args.video.with_name(f"{args.video.stem}_slides")
+    if args.png:
+        png_dir.mkdir(exist_ok=True)
+
+    page_format = ".png" if args.quality == 0 else ".jpg"
+    page_params = [] if args.quality == 0 else [cv2.IMWRITE_JPEG_QUALITY, args.quality]
+
     last = None
-    kept = 0
-    slide_paths: list[Path] = []
+    pages: list[bytes] = []
     t = 0.0
     while t < duration:
         cap.set(cv2.CAP_PROP_POS_MSEC, t * 1000)
@@ -87,27 +92,22 @@ def main() -> None:
             break
         gray = small_gray(frame)
         if last is None or percent_equal(gray, last) < args.threshold:
-            kept += 1
-            path = out_dir / f"slide_{kept:03d}_{timestamp(t)}.png"
-            cv2.imwrite(str(path), frame)
-            slide_paths.append(path)
-            print(f"[{timestamp(t)}] kept  -> {path.name}")
+            pages.append(cv2.imencode(page_format, frame, page_params)[1].tobytes())
+            name = f"slide_{len(pages):03d}_{timestamp(t)}"
+            if args.png:
+                cv2.imwrite(str(png_dir / f"{name}.png"), frame)
+            print(f"[{timestamp(t)}] kept  {name}")
             last = gray
         t += args.interval
-
     cap.release()
-    print(f"{kept} slides saved to {out_dir}")
 
-    if slide_paths:
-        pdf_path = out_dir.with_suffix(".pdf")
-        if args.quality == 0:
-            pages = [str(p) for p in slide_paths]
-        else:
-            params = [cv2.IMWRITE_JPEG_QUALITY, args.quality]
-            pages = [cv2.imencode(".jpg", cv2.imread(str(p)), params)[1].tobytes()
-                     for p in slide_paths]
-        pdf_path.write_bytes(img2pdf.convert(pages))
-        print(f"PDF saved to {pdf_path}")
+    if not pages:
+        raise SystemExit("No frames could be read from the video.")
+    pdf_path = png_dir.with_suffix(".pdf")
+    pdf_path.write_bytes(img2pdf.convert(pages))
+    print(f"{len(pages)} slides saved to {pdf_path}")
+    if args.png:
+        print(f"PNGs saved to {png_dir}")
 
 
 if __name__ == "__main__":
