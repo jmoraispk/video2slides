@@ -24,10 +24,10 @@ uv run extract_slides.py VIDEO [-i 10] [-t 95] [-q 80] [-o DIR]
 Output:
 
 ```
+<video>_slides.pdf                      # all slides, in order (~2 MB vs 11 MB lossless)
 <video>_slides/slide_001_00-00-00.png   # time in the video
 <video>_slides/slide_002_00-00-10.png
 ...
-<video>_slides.pdf                      # all slides, in order (~2 MB vs 11 MB lossless)
 ```
 
 <details>
