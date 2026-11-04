@@ -1,4 +1,4 @@
-# video_to_slides
+# video2slides
 
 Turn a recorded talk or presentation video into a deduplicated set of slide images plus a single PDF.
 
@@ -29,7 +29,7 @@ Each grabbed frame is downscaled to 320 px wide and converted to grayscale. A pi
 
 ## Example
 
-Tested on a talk downloaded from X with the [X Video Downloader](https://chromewebstore.google.com/detail/x-video-downloader/lpkhciegcecmbnojmdhfkcooedminenc) Chrome extension: an 8 min 53 s, 1920×1080, 30 fps MP4 of a talk with slides and a webcam overlay.
+Tested on [this talk by Victor Gu on X](https://x.com/victorgu0/status/2117693795076854052), downloaded with the [X Video Downloader](https://chromewebstore.google.com/detail/x-video-downloader/lpkhciegcecmbnojmdhfkcooedminenc) Chrome extension: an 8 min 53 s, 1920×1080, 30 fps MP4 of a talk with slides and a webcam overlay.
 
 ```
 uv run extract_slides.py 2026-11-04-09-33-29.mp4
